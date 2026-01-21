@@ -38,8 +38,21 @@ function scanDirectory($dir, $extensions, $dangerousFunctions, $passwordPattern,
                     
                     // Check for hardcoded passwords
                     if (preg_match($passwordPattern, $line)) {
+                        // Filter out common false positives
+                        if (
+                            strpos($line, '$_POST') !== false || 
+                            strpos($line, '$_GET') !== false || 
+                            strpos($line, '$_REQUEST') !== false ||
+                            strpos($line, 'type="password"') !== false ||
+                            strpos($line, 'id="password"') !== false ||
+                            strpos($line, 'name="password"') !== false ||
+                            strpos($line, 'document.getElementById') !== false // JS DOM access
+                        ) {
+                            continue;
+                        }
+
                         echo "POTENTIAL ISSUE: Possible hardcoded password found in $path on line " . ($index + 1) . "\n";
-                        echo "  > $line\n";
+                        echo "  > " . trim($line) . "\n";
                         $issuesFound++;
                     }
                 }
@@ -71,7 +84,21 @@ foreach ($rootFiles as $file) {
                     }
                 }
                 if (preg_match($passwordPattern, $line)) {
+                    // Filter out common false positives
+                    if (
+                        strpos($line, '$_POST') !== false || 
+                        strpos($line, '$_GET') !== false || 
+                        strpos($line, '$_REQUEST') !== false ||
+                        strpos($line, 'type="password"') !== false ||
+                        strpos($line, 'id="password"') !== false ||
+                        strpos($line, 'name="password"') !== false ||
+                        strpos($line, 'document.getElementById') !== false // JS DOM access
+                    ) {
+                        continue;
+                    }
+
                     echo "POTENTIAL ISSUE: Possible hardcoded password found in $file on line " . ($index + 1) . "\n";
+                    echo "  > " . trim($line) . "\n";
                     $issuesFound++;
                 }
             }
