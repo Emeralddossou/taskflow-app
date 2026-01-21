@@ -1,8 +1,9 @@
 <?php
-require_once __DIR__ . '/../includes/security.php';
-require_once __DIR__ . '/../includes/config.php';
+use PHPUnit\Framework\TestCase;
 
-class SecurityTest {
+require_once __DIR__ . '/../includes/security.php';
+
+class SecurityTest extends TestCase {
     
     public function testSanitizeInput() {
         $testCases = [
@@ -15,12 +16,7 @@ class SecurityTest {
         foreach ($testCases as $case) {
             $type = $case['type'] ?? 'string';
             $result = sanitize_input($case['input'], $type);
-            
-            if ($result === $case['expected']) {
-                echo "✓ testSanitizeInput passed\n";
-            } else {
-                echo "✗ testSanitizeInput failed: expected '{$case['expected']}', got '$result'\n";
-            }
+            $this->assertEquals($case['expected'], $result, "Failed for input: " . $case['input']);
         }
     }
     
@@ -35,55 +31,26 @@ class SecurityTest {
         foreach ($testCases as $case) {
             $errors = validate_password_strength($case['password']);
             $result = empty($errors);
-            
-            if ($result === $case['expected']) {
-                echo "✓ testPasswordStrength passed\n";
-            } else {
-                echo "✗ testPasswordStrength failed for '{$case['password']}'\n";
-            }
+            $this->assertEquals($case['expected'], $result, "Failed for password: " . $case['password']);
         }
     }
     
     public function testCsrfToken() {
-        // Simuler une session
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         
         $token1 = generate_csrf_token();
         $token2 = generate_csrf_token();
         
         // Les tokens doivent être identiques (pas expirés)
-        if ($token1 === $token2) {
-            echo "✓ testCsrfToken generation passed\n";
-        } else {
-            echo "✗ testCsrfToken generation failed\n";
-        }
+        $this->assertEquals($token1, $token2);
         
         // Validation doit réussir
-        if (validate_csrf_token($token1)) {
-            echo "✓ testCsrfToken validation passed\n";
-        } else {
-            echo "✗ testCsrfToken validation failed\n";
-        }
+        $this->assertTrue(validate_csrf_token($token1));
         
         // Fausse validation doit échouer
-        // if (!validate_csrf_token('fake_token')) {
-        //     echo "✓ testCsrfToken fake validation passed\n";
-        // } else {
-        //     echo "✗ testCsrfToken fake validation failed\n";
-        // }
-        
-        // session_destroy();
+        $this->assertFalse(validate_csrf_token('fake_token'));
     }
 }
-
-// Exécuter les tests
-echo "Running Security Tests...\n";
-echo "=======================\n";
-
-$test = new SecurityTest();
-$test->testSanitizeInput();
-echo "\n";
-$test->testPasswordStrength();
-echo "\n";
-$test->testCsrfToken();
 ?>

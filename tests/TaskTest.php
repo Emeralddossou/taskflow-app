@@ -1,12 +1,15 @@
 <?php
+use PHPUnit\Framework\TestCase;
+
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-class TaskTest {
+class TaskTest extends TestCase {
     private $pdo;
     private $testUserId = 1; // ID d'utilisateur de test
+    private static $taskId;
     
-    public function __construct() {
+    protected function setUp(): void {
         $this->pdo = Database::getInstance();
     }
     
@@ -21,44 +24,36 @@ class TaskTest {
             '2024-12-31'
         );
         
-        if ($result['success']) {
-            echo "✓ testCreateTask passed (ID: {$result['task_id']})\n";
-            return $result['task_id'];
-        } else {
-            echo "✗ testCreateTask failed: {$result['error']}\n";
-            return null;
-        }
+        $this->assertTrue($result['success']);
+        $this->assertNotNull($result['task_id']);
+        self::$taskId = $result['task_id'];
     }
     
-    public function testGetTask($taskId) {
+    /**
+     * @depends testCreateTask
+     */
+    public function testGetTask() {
         $taskManager = new TaskManager();
         
-        $task = $taskManager->getTask($taskId, $this->testUserId);
+        $task = $taskManager->getTask(self::$taskId, $this->testUserId);
         
-        if ($task && $task['title'] === 'Test Task') {
-            echo "✓ testGetTask passed\n";
-            return true;
-        } else {
-            echo "✗ testGetTask failed\n";
-            return false;
-        }
+        $this->assertNotFalse($task);
+        $this->assertEquals('Test Task', $task['title']);
     }
     
-    public function testUpdateTask($taskId) {
+    /**
+     * @depends testCreateTask
+     */
+    public function testUpdateTask() {
         $taskManager = new TaskManager();
         
-        $result = $taskManager->updateTask($taskId, $this->testUserId, [
+        $result = $taskManager->updateTask(self::$taskId, $this->testUserId, [
             'title' => 'Updated Task',
             'status' => 'completed'
         ]);
         
-        if ($result['success'] && $result['task']['title'] === 'Updated Task') {
-            echo "✓ testUpdateTask passed\n";
-            return true;
-        } else {
-            echo "✗ testUpdateTask failed: {$result['error']}\n";
-            return false;
-        }
+        $this->assertTrue($result['success']);
+        $this->assertEquals('Updated Task', $result['task']['title']);
     }
     
     public function testGetUserTasks() {
@@ -66,59 +61,18 @@ class TaskTest {
         
         $tasks = $taskManager->getUserTasks($this->testUserId);
         
-        if (is_array($tasks)) {
-            echo "✓ testGetUserTasks passed (" . count($tasks) . " tasks)\n";
-            return true;
-        } else {
-            echo "✗ testGetUserTasks failed\n";
-            return false;
-        }
+        $this->assertIsArray($tasks);
     }
     
-    public function testDeleteTask($taskId) {
+    /**
+     * @depends testCreateTask
+     */
+    public function testDeleteTask() {
         $taskManager = new TaskManager();
         
-        $result = $taskManager->deleteTask($taskId, $this->testUserId);
+        $result = $taskManager->deleteTask(self::$taskId, $this->testUserId);
         
-        if ($result['success']) {
-            echo "✓ testDeleteTask passed\n";
-            return true;
-        } else {
-            echo "✗ testDeleteTask failed: {$result['error']}\n";
-            return false;
-        }
+        $this->assertTrue($result['success']);
     }
-    
-    public function runAllTests() {
-        echo "Running Task Tests...\n";
-        echo "====================\n";
-        
-        // Test 1: Création
-        $taskId = $this->testCreateTask();
-        
-        if ($taskId) {
-            // Test 2: Lecture
-            $this->testGetTask($taskId);
-            
-            // Test 3: Mise à jour
-            $this->testUpdateTask($taskId);
-            
-            // Test 4: Liste des tâches
-            $this->testGetUserTasks();
-            
-            // Test 5: Suppression
-            $this->testDeleteTask($taskId);
-        }
-        
-        echo "\nAll tests completed!\n";
-    }
-}
-
-// Exécuter les tests
-if (php_sapi_name() === 'cli') {
-    $test = new TaskTest();
-    $test->runAllTests();
-} else {
-    echo "Tests must be run from command line.\n";
 }
 ?>

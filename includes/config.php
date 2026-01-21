@@ -5,10 +5,10 @@ define('APP_VERSION', '1.0.0');
 define('APP_ENV', 'development'); // production, development, testing
 
 // Configuration de la base de données
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'taskflow');
-define('DB_USER', 'root');
-define('DB_PASS', 'root');
+define('DB_HOST', $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? 'localhost');
+define('DB_NAME', $_ENV['DB_NAME'] ?? $_SERVER['DB_NAME'] ?? 'taskflow');
+define('DB_USER', $_ENV['DB_USER'] ?? $_SERVER['DB_USER'] ?? 'root');
+define('DB_PASS', $_ENV['DB_PASS'] ?? $_SERVER['DB_PASS'] ?? 'root');
 
 // Configuration de sécurité
 define('MAX_LOGIN_ATTEMPTS', 5);
