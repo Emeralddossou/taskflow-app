@@ -30,9 +30,3 @@ TaskFlow est une application web de gestion de tâches personnelle, sécurisée 
 - MySQL 5.7+
 - Apache/Nginx
 - Composer (optionnel)
-
-### 1. Configuration de la base de données
-
-```sql
--- Exécuter le script SQL fourni dans database.sql
-mysql -u root -p < database.sql
