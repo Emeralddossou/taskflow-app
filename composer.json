@@ -20,11 +20,8 @@
         "test": "phpunit --configuration phpunit.xml",
         "test-coverage": "phpunit --configuration phpunit.xml --coverage-html coverage",
         "analyse": "phpstan analyse includes tests --level=5",
-        "lint": "phpcs includes tests --standard=PSR12",
-        "security-check": [
-            "grep -r \"eval\\|system\\|exec\\|shell_exec\\|passthru\\|proc_open\\|popen\\|pcntl_exec\" --include=\"*.php\" . || echo 'No dangerous functions found'",
-            "grep -r \"password.*=.*['\\\"].*['\\\"]\" --include=\"*.php\" --include=\"*.js\" . || echo 'No plaintext passwords found'"
-        ],
+        "lint": "phpcs includes tests",
+        "security-check": "php scripts/security-audit.php",
         "metrics": "phploc --count-tests .",
         "ci": [
             "@test",

@@ -1,8 +1,9 @@
 <?php
+
 // Configuration de l'application
 define('APP_NAME', 'TaskFlow');
 define('APP_VERSION', '1.0.0');
-define('APP_ENV', 'development'); // production, development, testing
+define('APP_ENV', $_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'development'); // production, development, testing
 
 // Configuration de la base de données
 define('DB_HOST', $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? 'localhost');
@@ -26,4 +27,3 @@ define('LOG_LEVEL', APP_ENV === 'production' ? 2 : 4); // 1: Error, 2: Warning, 
 // Démarrer la session sécurisée
 require_once __DIR__ . '/security.php';
 secure_session_start();
-?>

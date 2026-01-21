@@ -34,7 +34,7 @@
         <ini name="display_startup_errors" value="1"/>
         <server name="APP_ENV" value="testing"/>
         <server name="DB_HOST" value="127.0.0.1"/>
-        <server name="DB_NAME" value="taskflow_test"/>
+        <server name="DB_NAME" value="taskflow"/>
         <server name="DB_USER" value="root"/>
         <server name="DB_PASS" value="root"/>
     </php>
