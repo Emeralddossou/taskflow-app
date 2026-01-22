@@ -138,12 +138,12 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                                 <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                             </button>
                             <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="fas fa-user mr-2"></i>Mon profil
                                 </a>
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="fas fa-cog mr-2"></i>Paramètres
-                                </a>
+                                </a> -->
                                 <div class="border-t border-gray-100"></div>
                                 <a href="logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
                                     <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
@@ -355,11 +355,17 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 
-                                <?php if ($task['status'] !== 'completed'): ?>
+                                <?php if ($task['status'] === 'pending'): ?>
                                     <button class="task-start-btn text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition"
                                             data-task-id="<?php echo $task['id']; ?>"
                                             title="Commencer">
                                         <i class="fas fa-play"></i>
+                                    </button>
+                                <?php elseif ($task['status'] === 'in_progress'): ?>
+                                    <button class="task-complete-btn text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition"
+                                            data-task-id="<?php echo $task['id']; ?>"
+                                            title="Terminer">
+                                        <i class="fas fa-check"></i>
                                     </button>
                                 <?php endif; ?>
                             </div>
@@ -552,7 +558,12 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
 
         // Gestion du modal
         document.getElementById('new-task-btn').addEventListener('click', () => openTaskModal());
-        document.getElementById('empty-new-task-btn').addEventListener('click', () => openTaskModal());
+        
+        const emptyBtn = document.getElementById('empty-new-task-btn');
+        if (emptyBtn) {
+            emptyBtn.addEventListener('click', () => openTaskModal());
+        }
+
         document.getElementById('close-modal').addEventListener('click', closeTaskModal);
         document.getElementById('cancel-task').addEventListener('click', closeTaskModal);
 
@@ -587,6 +598,12 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
             if (event.target.closest('.task-start-btn')) {
                 const taskId = event.target.closest('.task-start-btn').dataset.taskId;
                 updateTaskStatus(taskId, 'in_progress');
+            }
+
+            // Terminer une tâche
+            if (event.target.closest('.task-complete-btn')) {
+                const taskId = event.target.closest('.task-complete-btn').dataset.taskId;
+                updateTaskStatus(taskId, 'completed');
             }
             
             // Checkbox de tâche
@@ -879,7 +896,7 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                     </div>
                 `;
                 
-                document.getElementById('empty-new-task-btn').addEventListener('click', openTaskModal);
+                document.getElementById('empty-new-task-btn').addEventListener('click', () => openTaskModal());
                 return;
             }
             
@@ -958,11 +975,19 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 
-                                ${task.status !== 'completed' ? `
+                                ${task.status === 'pending' ? `
                                     <button class="task-start-btn text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition"
                                             data-task-id="${task.id}"
                                             title="Commencer">
                                         <i class="fas fa-play"></i>
+                                    </button>
+                                ` : ''}
+                                
+                                ${task.status === 'in_progress' ? `
+                                    <button class="task-complete-btn text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition"
+                                            data-task-id="${task.id}"
+                                            title="Terminer">
+                                        <i class="fas fa-check"></i>
                                     </button>
                                 ` : ''}
                             </div>

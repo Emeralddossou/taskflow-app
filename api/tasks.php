@@ -1,4 +1,9 @@
 <?php
+ini_set('display_errors', 0);
+require_once '../includes/config.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
+
 header('Content-Type: application/json');
 $origin = $_SERVER['HTTP_ORIGIN'] ?? BASE_URL;
 header('Access-Control-Allow-Origin: ' . $origin);
@@ -11,10 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
-
-require_once '../includes/config.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
 
 $auth = new Auth();
 
