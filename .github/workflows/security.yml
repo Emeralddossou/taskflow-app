@@ -1,44 +1,76 @@
-name: Security Pipeline
+name: "Security Pipeline — ${{ github.event_name }} ${{ github.ref_name }}"
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main" ]          # garde un trigger push pour main (ex: déploiement)
+  pull_request:
+    branches: [ "main", "dev" ]  # analyses (Snyk / Sonar / Composer audit) sur PRs
 
 jobs:
+  composer-audit:
+    name: Composer Audit (vuln scan)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup PHP (shivammathur)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, zip
+
+      - name: Install dependencies
+        # --no-scripts to avoid side effects; retire si tu as besoin des scripts
+        run: composer install --no-interaction --prefer-dist --no-scripts
+
+      - name: Composer audit (SCA)
+        # composer audit nécessite Composer 2.4+ (si absent, voir note plus bas)
+        run: composer audit --no-interaction
+
   snyk-scan:
     name: Snyk Security Scan
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: composer-audit
     steps:
-      - uses: actions/checkout@v3
-      
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/php@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   sonarcloud-scan:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [composer-audit, snyk-scan]
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout (full history)
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          
+
+      - name: Setup Java (required for Sonar scanner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: 'Checkout Repository'
-        uses: actions/checkout@v3
-      
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v3
+# Notes :
+# - Tous les jobs de sécurité tournent uniquement sur les pull_request pour éviter les doublons
+#   avec les analyses automatiques et pour économiser les minutes CI.
+# - On évite actions/dependency-review car pour les repos privés il nécessite GHAS/Dependency Graph.
+# - Si tu veux exécuter certains scans aussi sur push->main (par exemple pour prod), tu peux
+#   retirer le `if:` du job ciblé ou ajouter un job dédié pour push main seulement.
