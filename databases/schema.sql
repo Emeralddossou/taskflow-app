@@ -1,7 +1,3 @@
--- Créer la base de données
-CREATE DATABASE IF NOT EXISTS taskflow;
-USE taskflow;
-
 -- Table des utilisateurs
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,

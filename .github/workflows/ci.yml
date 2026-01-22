@@ -59,3 +59,40 @@ jobs:
         DB_USER: root
         DB_PASS: root
         APP_ENV: testing
+
+  deploy:
+    name: Deploy to InfinityFree (FTP)
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.ref == 'refs/heads/main'   # déploie seulement depuis main
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create production .env (from GitHub Secrets)
+        run: |
+          cat > .env <<'EOF'
+          APP_ENV=production
+          DB_HOST=${{ secrets.INF_DB_HOST }}
+          DB_DATABASE=${{ secrets.INF_DB_NAME }}
+          DB_USERNAME=${{ secrets.INF_DB_USER }}
+          DB_PASSWORD=${{ secrets.INF_DB_PASS }}
+          EOF
+
+      - name: Ensure .git-ftp-include exists (allow upload of untracked files like .env)
+        run: |
+          echo ".env" > .git-ftp-include || true
+          echo ".git-ftp-include" >> .gitignore || true
+
+      - name: Show files (debug)
+        run: ls -la
+
+      - name: FTP Deploy to InfinityFree
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.INF_FTP_HOST }}     # ex: ftpupload.net ou ftp.epizy.com
+          username: ${{ secrets.INF_FTP_USER }}   # epiz_xxx...
+          password: ${{ secrets.INF_FTP_PASS }}
+          local-dir: ./                            # dossier à uploader
+          server-dir: /htdocs/                     # dossier cible sur InfinityFree
+          # dangerous-clean-slate: true           # option si tu veux nettoyer d'abord (à utiliser avec précaution)
