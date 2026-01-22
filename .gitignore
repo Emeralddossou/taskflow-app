@@ -5,6 +5,8 @@ yarn-error.log
 
 composer.phar
 
+config.php
+
 # Laravel 4 specific
 bootstrap/compiled.php
 app/storage/
