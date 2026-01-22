@@ -1,4 +1,4 @@
-name: "Security Pipeline — ${{ github.event_name }} ${{ github.ref_name }}"
+name: "Security Pipeline"
 
 on:
   push:
