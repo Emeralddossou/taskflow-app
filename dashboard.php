@@ -486,6 +486,8 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
         flatpickr("#task-due-date", {
             locale: "fr",
             dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
             minDate: "today",
             disableMobile: true
         });
@@ -549,8 +551,8 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
         });
 
         // Gestion du modal
-        document.getElementById('new-task-btn').addEventListener('click', openTaskModal);
-        document.getElementById('empty-new-task-btn').addEventListener('click', openTaskModal);
+        document.getElementById('new-task-btn').addEventListener('click', () => openTaskModal());
+        document.getElementById('empty-new-task-btn').addEventListener('click', () => openTaskModal());
         document.getElementById('close-modal').addEventListener('click', closeTaskModal);
         document.getElementById('cancel-task').addEventListener('click', closeTaskModal);
 
@@ -698,7 +700,15 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                     body: formData
                 });
                 
-                const data = await response.json();
+                const responseText = await response.text();
+                let data;
+                
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Server response is not JSON:', responseText);
+                    throw new Error('Server returned invalid JSON');
+                }
                 
                 if (data.success) {
                     showNotification(data.message || 'Tâche enregistrée avec succès');
@@ -713,7 +723,13 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                 if (error instanceof TypeError) {
                     console.log('TypeError: Possible CSRF/CORS issue or network failure');
                 }
-                showNotification('Erreur de connexion au serveur', 'error');
+                
+                // Show more detailed error if possible
+                if (error.message === 'Server returned invalid JSON') {
+                    showNotification('Erreur serveur: Réponse invalide', 'error');
+                } else {
+                    showNotification('Erreur de connexion au serveur: ' + error.message, 'error');
+                }
             } finally {
                 hideLoading();
             }
@@ -828,6 +844,10 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                 document.getElementById('modal-title').textContent = 'Nouvelle tâche';
                 document.getElementById('task-id').value = '';
                 document.getElementById('task-status').value = 'pending';
+                // Set default date to today
+                if (document.getElementById('task-due-date')._flatpickr) {
+                    document.getElementById('task-due-date')._flatpickr.setDate(new Date());
+                }
             }
             
             modal.classList.remove('hidden');

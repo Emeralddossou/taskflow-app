@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: ' . BASE_URL);
+$origin = $_SERVER['HTTP_ORIGIN'] ?? BASE_URL;
+header('Access-Control-Allow-Origin: ' . $origin);
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
 header('Access-Control-Allow-Credentials: true');
@@ -209,4 +210,3 @@ function handleDelete($taskManager, $user_id) {
         echo json_encode(['success' => false, 'error' => $result['error']]);
     }
 }
-?>
