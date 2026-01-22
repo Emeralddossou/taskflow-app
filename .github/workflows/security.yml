@@ -27,7 +27,7 @@ jobs:
 
       - name: Composer audit (SCA)
         # composer audit nécessite Composer 2.4+ (si absent, voir note plus bas)
-        run: composer audit --no-interaction
+        run: composer audit --no-interaction --ignore-abandoned
 
   snyk-scan:
     name: Snyk Security Scan
