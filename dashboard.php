@@ -172,7 +172,7 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total des tâches</p>
-                            <p class="text-2xl font-semibold text-gray-900"><?php echo $stats['total'] ?? 0; ?></p>
+                            <p id="stat-total" class="text-2xl font-semibold text-gray-900"><?php echo $stats['total'] ?? 0; ?></p>
                         </div>
                     </div>
                 </div>
@@ -184,7 +184,7 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Terminées</p>
-                            <p class="text-2xl font-semibold text-gray-900"><?php echo $stats['completed'] ?? 0; ?></p>
+                            <p id="stat-completed" class="text-2xl font-semibold text-gray-900"><?php echo $stats['completed'] ?? 0; ?></p>
                         </div>
                     </div>
                 </div>
@@ -196,7 +196,7 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">En cours</p>
-                            <p class="text-2xl font-semibold text-gray-900"><?php echo $stats['in_progress'] ?? 0; ?></p>
+                            <p id="stat-in-progress" class="text-2xl font-semibold text-gray-900"><?php echo $stats['in_progress'] ?? 0; ?></p>
                         </div>
                     </div>
                 </div>
@@ -208,7 +208,7 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">En retard</p>
-                            <p class="text-2xl font-semibold text-gray-900"><?php echo $stats['overdue'] ?? 0; ?></p>
+                            <p id="stat-overdue" class="text-2xl font-semibold text-gray-900"><?php echo $stats['overdue'] ?? 0; ?></p>
                         </div>
                     </div>
                 </div>
@@ -678,6 +678,9 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                 
                 if (data.success) {
                     updateTasksList(data.tasks);
+                    if (data.stats) {
+                        updateStats(data.stats);
+                    }
                 } else {
                     showNotification(data.error || 'Erreur lors du chargement des tâches', 'error');
                 }
@@ -1016,6 +1019,18 @@ $tasks = $taskManager->getUserTasks($user_id, $filters);
                 'completed': 'Terminée'
             };
             return labels[status] || status;
+        }
+
+        function updateStats(stats) {
+            const totalEl = document.getElementById('stat-total');
+            const completedEl = document.getElementById('stat-completed');
+            const inProgressEl = document.getElementById('stat-in-progress');
+            const overdueEl = document.getElementById('stat-overdue');
+
+            if (totalEl) totalEl.textContent = stats.total || 0;
+            if (completedEl) completedEl.textContent = stats.completed || 0;
+            if (inProgressEl) inProgressEl.textContent = stats.in_progress || 0;
+            if (overdueEl) overdueEl.textContent = stats.overdue || 0;
         }
 
         // Initialiser

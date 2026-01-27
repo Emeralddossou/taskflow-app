@@ -34,7 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $auth->register($username, $email, $password);
             
             if ($result['success']) {
-                $success = 'Compte créé avec succès ! Vous pouvez maintenant vous connecter.';
+                // Connexion automatique après inscription
+                $loginResult = $auth->login($email, $password);
+                if ($loginResult['success']) {
+                    header('Location: dashboard.php?registered=1');
+                    exit;
+                } else {
+                    $success = 'Compte créé avec succès ! Veuillez vous connecter.';
+                }
                 // Vider le formulaire
                 $_POST = [];
             } else {

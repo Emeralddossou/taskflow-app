@@ -85,7 +85,8 @@ function handleGet($taskManager, $user_id) {
     echo json_encode([
         'success' => true,
         'tasks' => $tasks,
-        'count' => count($tasks)
+        'count' => count($tasks),
+        'stats' => $taskManager->getTaskStats($user_id)
     ]);
 }
 
@@ -120,7 +121,8 @@ function handlePost($taskManager, $user_id) {
         echo json_encode([
             'success' => true,
             'message' => 'Tâche créée avec succès',
-            'task' => $result['task']
+            'task' => $result['task'],
+            'stats' => $taskManager->getTaskStats($user_id)
         ]);
     } else {
         echo json_encode(['success' => false, 'error' => $result['error']]);
@@ -173,7 +175,8 @@ function handlePut($taskManager, $user_id) {
         echo json_encode([
             'success' => true,
             'message' => 'Tâche mise à jour avec succès',
-            'task' => $result['task']
+            'task' => $result['task'],
+            'stats' => $taskManager->getTaskStats($user_id)
         ]);
     } else {
         echo json_encode(['success' => false, 'error' => $result['error']]);
@@ -206,7 +209,11 @@ function handleDelete($taskManager, $user_id) {
     $result = $taskManager->deleteTask($task_id, $user_id);
     
     if ($result['success']) {
-        echo json_encode(['success' => true, 'message' => 'Tâche supprimée avec succès']);
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Tâche supprimée avec succès',
+            'stats' => $taskManager->getTaskStats($user_id)
+        ]);
     } else {
         echo json_encode(['success' => false, 'error' => $result['error']]);
     }
