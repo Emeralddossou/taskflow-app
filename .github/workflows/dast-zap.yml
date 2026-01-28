@@ -1,70 +1,54 @@
 name: "Security DAST Scan (OWASP ZAP)"
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  # Permet de lancer le scan manuellement depuis l'interface GitHub
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI/CD with Docker & Trivy"] # Doit être le NOM exact de ton pipeline de déploiement
+    types:
+      - completed
+  workflow_dispatch: # Pour le lancer manuellement si besoin
+
+permissions:
+  contents: write    # Requis pour GitHub Pages
+  issues: write      # Requis pour les tickets ZAP
+  security-events: write
 
 jobs:
   zap_scan:
     name: DAST Scan with OWASP ZAP
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write # Requis si tu veux que ZAP crée des tickets pour les failles trouvées
+    # On ne lance le scan que si le workflow de déploiement s'est terminé avec SUCCÈS
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # ------------------------------------------------------------------
-      # ÉTAPE 1 : Démarrer l'application (OBLIGATOIRE pour le DAST)
-      # ------------------------------------------------------------------
-      - name: Start Application Container
-        run: |
-          docker compose -f docker-compose-dast.yaml up -d --build 
-          
-          # ⏳ ATTENTE CRITIQUE : On attend que l'app soit prête à répondre
-          echo "Waiting for application to be ready..."
-          sleep 15 
-          # Astuce pro : utilise curl en boucle pour vérifier si le port répond
-          until curl -s http://localhost:8080 > /dev/null; do echo "Waiting..."; sleep 5; done
+      # Étape indispensable : donner le temps à l'application de respirer après le déploiement
+      - name: Wait for service readiness
+        run: sleep 30
 
-      # ------------------------------------------------------------------
-      # ÉTAPE 2 : Lancer OWASP ZAP (Baseline Scan)
-      # ------------------------------------------------------------------
       - name: OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          # L'URL cible (doit correspondre à celle lancée à l'étape 1)
-          target: 'http://localhost:8080'
-          
-          # Nom du fichier rapport HTML généré
+          target: 'https://taskflow-app.rickdan.ddns-ip.net'
           cmd_options: '-r zap_report.html' 
-          
-          # fail_action: true => Le pipeline échoue si des failles sont trouvées (optionnel)
-          fail_action: false 
-          
-          # Token pour permettre à ZAP de créer des Issues GitHub (optionnel)
+          fail_action: false # On ne bloque pas encore le pipeline en cas d'alerte
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ------------------------------------------------------------------
-      # ÉTAPE 3 : Arrêter l'application (Nettoyage)
-      # ------------------------------------------------------------------
-      - name: Stop Application
-        if: always() # S'exécute même si ZAP trouve des erreurs
-        run: docker compose down
-
-      # ------------------------------------------------------------------
-      # ÉTAPE 4 : Publier le Rapport HTML
-      # ------------------------------------------------------------------
-      - name: Upload ZAP HTML Report
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Deploy Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: always() # On publie le rapport même si ZAP trouve des vulnérabilités
         with:
-          name: ZAP-Security-Report
-          path: zap_report.html
-          retention-days: 5
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          destination_dir: security-reports/${{ github.run_number }}
+          keep_files: true
+          publish_branch: gh-pages
+
+      - name: Post Summary
+        if: always()
+        run: |
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/security-reports/${{ github.run_number }}/zap_report.html"
+          echo "### 🛡️ Rapport DAST (Post-Déploiement)" >> $GITHUB_STEP_SUMMARY
+          echo "Le scan OWASP ZAP est terminé pour l'URL : https://taskflow-app.rickdan.ddns-ip.net" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [Consulter le Rapport Interactif]($URL)" >> $GITHUB_STEP_SUMMARY
