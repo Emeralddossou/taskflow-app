@@ -5,7 +5,7 @@ on:
     branches: [ main, dev ]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  IMAGE_NAME: ghcr.io/emerald-dossou/taskflow-app  # tout en minuscules
   IMAGE_TAG: ${{ github.sha }}
 
 permissions:
