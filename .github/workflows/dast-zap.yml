@@ -1,0 +1,70 @@
+name: "Security DAST Scan (OWASP ZAP)"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Permet de lancer le scan manuellement depuis l'interface GitHub
+  workflow_dispatch:
+
+jobs:
+  zap_scan:
+    name: DAST Scan with OWASP ZAP
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Requis si tu veux que ZAP crée des tickets pour les failles trouvées
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # ÉTAPE 1 : Démarrer l'application (OBLIGATOIRE pour le DAST)
+      # ------------------------------------------------------------------
+      - name: Start Application Container
+        run: |
+          docker compose up -d --build
+          
+          # ⏳ ATTENTE CRITIQUE : On attend que l'app soit prête à répondre
+          echo "Waiting for application to be ready..."
+          sleep 15 
+          # Astuce pro : utilise curl en boucle pour vérifier si le port répond
+          until curl -s http://localhost:8080 > /dev/null; do echo "Waiting..."; sleep 5; done
+
+      # ------------------------------------------------------------------
+      # ÉTAPE 2 : Lancer OWASP ZAP (Baseline Scan)
+      # ------------------------------------------------------------------
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          # L'URL cible (doit correspondre à celle lancée à l'étape 1)
+          target: 'http://localhost:8080'
+          
+          # Nom du fichier rapport HTML généré
+          cmd_options: '-r zap_report.html' 
+          
+          # fail_action: true => Le pipeline échoue si des failles sont trouvées (optionnel)
+          fail_action: false 
+          
+          # Token pour permettre à ZAP de créer des Issues GitHub (optionnel)
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ------------------------------------------------------------------
+      # ÉTAPE 3 : Arrêter l'application (Nettoyage)
+      # ------------------------------------------------------------------
+      - name: Stop Application
+        if: always() # S'exécute même si ZAP trouve des erreurs
+        run: docker compose down
+
+      # ------------------------------------------------------------------
+      # ÉTAPE 4 : Publier le Rapport HTML
+      # ------------------------------------------------------------------
+      - name: Upload ZAP HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ZAP-Security-Report
+          path: zap_report.html
+          retention-days: 5
