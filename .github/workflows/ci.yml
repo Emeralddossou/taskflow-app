@@ -104,6 +104,10 @@ jobs:
     needs: build-scan
     if: github.ref == 'refs/heads/main'
 
+    env:
+      IMAGE_NAME: ghcr.io/emerald-dossou/taskflow-app
+      IMAGE_TAG: ${{ github.sha }}
+
     steps:
       - uses: actions/checkout@v4
 
