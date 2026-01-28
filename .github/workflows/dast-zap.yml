@@ -31,7 +31,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'https://taskflow-app.rickdan.ddns-ip.net'
-          cmd_options: '-r zap_report.html'
+          #cmd_options: '-r zap_report.html'
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_action: false # Passe à true quand tu seras prêt à bloquer les déploiements non sécurisés
 
