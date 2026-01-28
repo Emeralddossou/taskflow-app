@@ -1,0 +1,13 @@
+services:
+  taskflow-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: taskflow-app:local
+    container_name: taskflow-app
+    restart: unless-stopped
+
+    ports:
+      - "8080:80"
+
+
