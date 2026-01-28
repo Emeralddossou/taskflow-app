@@ -25,7 +25,7 @@ jobs:
       # ------------------------------------------------------------------
       - name: Start Application Container
         run: |
-          docker compose up -d --build
+          docker compose -f docker-compose-dast.yaml up -d --build 
           
           # ⏳ ATTENTE CRITIQUE : On attend que l'app soit prête à répondre
           echo "Waiting for application to be ready..."
