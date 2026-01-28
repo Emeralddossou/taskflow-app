@@ -5,8 +5,7 @@ on:
     branches: [ main, dev ]
 
 env:
-  IMAGE_REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ env.IMAGE_REGISTRY }}/${{ github.repository }}
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
   IMAGE_TAG: ${{ github.sha }}
 
 permissions:
