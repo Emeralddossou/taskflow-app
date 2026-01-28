@@ -1,18 +1,23 @@
 services:
   taskflow-app:
-    image: ${FULL_IMAGE}   # Docker Compose récupère la valeur depuis .env
+    image: $FULL_IMAGE
     container_name: taskflow-app
     restart: unless-stopped
+
     networks:
       - traefik_net
+
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_net"
-      - "traefik.http.services.taskflow-app.loadbalancer.server.port=80"
-      - "traefik.http.routers.taskflow-app.rule=Host(`taskflow-app.rickdan.ddns-ip.net`)"
-      - "traefik.http.routers.taskflow-app.entrypoints=websecure"
-      - "traefik.http.routers.taskflow-app.tls=true"
-      - "traefik.http.routers.taskflow-app.tls.certresolver=myresolver"
+
+      # HTTPS
+      - "traefik.http.routers.taskflow.rule=Host(`taskflow-app.rickdan.ddns-ip.net`)"
+      - "traefik.http.routers.taskflow.entrypoints=websecure"
+      - "traefik.http.routers.taskflow.tls.certresolver=myresolver"
+
+      # SERVICE → port interne du conteneur
+      - "traefik.http.services.taskflow.loadbalancer.server.port=80"
 
 networks:
   traefik_net:
