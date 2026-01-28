@@ -82,7 +82,7 @@ jobs:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: $IMAGE_NAME:$IMAGE_TAG
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: sarif
           output: trivy-results.sarif
           severity: 'CRITICAL,HIGH'
