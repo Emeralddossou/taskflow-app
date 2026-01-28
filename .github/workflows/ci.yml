@@ -77,7 +77,7 @@ jobs:
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
       - name: Run Trivy Scan (image vulnerability)
-        uses: aquasecurity/trivy-action@v0.14.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: $IMAGE_NAME:$IMAGE_TAG
           format: sarif
