@@ -6,6 +6,8 @@ services:
     networks:
       - traefik_net
     labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_net"
       - "traefik.http.routers.taskflow-app.rule=Host(`taskflow-app.rickdan.ddns-ip.net`)"
       - "traefik.http.routers.taskflow-app.entrypoints=websecure"
       - "traefik.http.routers.taskflow-app.tls=true"
