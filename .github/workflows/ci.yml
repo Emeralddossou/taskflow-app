@@ -1,12 +1,26 @@
-name: CI/CD Pipeline
+name: "CI/CD with Docker & Trivy"
 
 on:
   push:
     branches: [ main, dev ]
 
+env:
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ env.IMAGE_REGISTRY }}/${{ github.repository }}
+  IMAGE_TAG: ${{ github.sha }}
+
+permissions:
+  contents: read
+  packages: write   # requis pour pousser sur GHCR
+  security-events: write  # requis pour Trivy SARIF upload
+
 jobs:
-  tests:
-    name: Run Tests & Analysis
+
+  # -----------------------------------
+  # 1) Build & Test (Unit + Integration)
+  # -----------------------------------
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     services:
@@ -17,82 +31,138 @@ jobs:
           MYSQL_DATABASE: taskflow
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, xml, ctype, iconv, mysql, pdo_mysql
-        coverage: xdebug
-        tools: composer:v2
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, pdo_mysql
+          tools: composer:v2
 
-    - name: Get Composer Cache Directory
-      id: composer-cache
-      run: |
-        echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      - name: Composer install
+        run: composer install --prefer-dist --no-progress
 
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.composer-cache.outputs.dir }}
-        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-composer-
+      - name: Setup Database
+        run: mysql -h 127.0.0.1 -uroot -proot taskflow < databases/schema.sql
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      - name: Run Tests
+        run: composer ci
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: taskflow
+          DB_USER: root
+          DB_PASS: root
+          APP_ENV: testing
 
-    - name: Setup Database
-      run: |
-        mysql -h 127.0.0.1 -u root -proot taskflow < databases/schema.sql
-
-    - name: Run CI tasks
-      run: composer ci
-      env:
-        DB_HOST: 127.0.0.1
-        DB_NAME: taskflow
-        DB_USER: root
-        DB_PASS: root
-        APP_ENV: testing
-
-  deploy:
-    name: Deploy to InfinityFree (FTP)
+  # --------------------------------------------------
+  # 2) Build Docker Image + Scan (Trivy) BEFORE Push
+  # --------------------------------------------------
+  build-scan:
+    name: Build & Scan Docker Image
     runs-on: ubuntu-latest
-    needs: tests
-    if: github.ref == 'refs/heads/main'   # déploie seulement depuis main
+    needs: build-test
+
     steps:
-      - name: Checkout code
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Run Trivy Scan (image vulnerability)
+        uses: aquasecurity/trivy-action@v0.33.1
+        with:
+          image-ref: $IMAGE_NAME:$IMAGE_TAG
+          format: sarif
+          output: trivy-results.sarif
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+      - name: Upload Trivy SARIF to GitHub Security UI
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+
+  # --------------------------------------------------
+  # 3) Push image to GitHub Container Registry (main only)
+  # --------------------------------------------------
+  push-image:
+    name: Push to GHCR
+    runs-on: ubuntu-latest
+    needs: build-scan
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image (again)
+        run: |
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Tag & Push Image
+        run: |
+          docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:$IMAGE_TAG
+          docker push $IMAGE_NAME:latest
+
+  # --------------------------------------------------
+  # 4) Deploy to Server via SSH + Docker Compose
+  # --------------------------------------------------
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    needs: push-image
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Create production .env (from GitHub Secrets)
-        run: |
-          cat > .env <<'EOF'
-          APP_ENV=production
-          DB_HOST=${{ secrets.INF_DB_HOST }}
-          DB_DATABASE=${{ secrets.INF_DB_NAME }}
-          DB_USERNAME=${{ secrets.INF_DB_USER }}
-          DB_PASSWORD=${{ secrets.INF_DB_PASS }}
-          EOF
-
-      - name: Ensure .git-ftp-include exists (allow upload of untracked files like .env)
-        run: |
-          echo ".env" > .git-ftp-include || true
-          echo ".git-ftp-include" >> .gitignore || true
-
-      - name: Show files (debug)
-        run: ls -la
-
-      - name: FTP Deploy to InfinityFree
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          server: ${{ secrets.INF_FTP_HOST }}     # ex: ftpupload.net ou ftp.epizy.com
-          username: ${{ secrets.INF_FTP_USER }}   # epiz_xxx...
-          password: ${{ secrets.INF_FTP_PASS }}
-          local-dir: ./                            # dossier à uploader
-          server-dir: /htdocs/                     # dossier cible sur InfinityFree
-          # dangerous-clean-slate: true           # option si tu veux nettoyer d'abord (à utiliser avec précaution)
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add remote server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Generate .env with Docker image
+        run: |
+          echo "FULL_IMAGE=${{ env.IMAGE_NAME }}:latest" > .env
+        
+
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,.env"
+          target: "~/taskflow-app"
+
+      - name: Run Deployment Commands
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            mkdir -p ~/taskflow-app
+            cd ~/taskflow-app
+            docker compose pull || exit 1
+            docker compose up -d || exit 1
+          EOF
