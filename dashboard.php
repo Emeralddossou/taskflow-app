@@ -14,7 +14,7 @@ if (!$auth->isLoggedIn()) {
 $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 
-// Initialiser le gestionnaire de tâches
+// Initialiser le ges-tionnaire de tâches
 $taskManager = new TaskManager();
 
 // Récupérer les statistiques
