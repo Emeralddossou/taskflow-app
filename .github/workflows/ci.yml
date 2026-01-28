@@ -157,13 +157,13 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.run_number }}
 
-      - name: Copy docker-compose.yml and .env
+      - name: Copy docker-compose.yaml and .env
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml,.env"
+          source: "docker-compose.yaml,.env"
           target: "~/taskflow-app"
 
       - name: Run Deployment Commands
