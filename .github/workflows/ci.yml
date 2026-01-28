@@ -76,7 +76,10 @@ jobs:
         run: |
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
-      - name: Run Trivy Scan (image vulnerability)
+      - name: Run Trivy Scan
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: $IMAGE_NAME:$IMAGE_TAG
@@ -85,6 +88,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           vuln-type: 'os,library'
+        
       - name: Upload Trivy SARIF to GitHub Security UI
         if: always()
         uses: github/codeql-action/upload-sarif@v4
