@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<ruleset name="TaskFlow Standard">
+    <description>Custom PSR12 with exclusions for legacy procedural structure</description>
+    <rule ref="PSR12"/>
+    <config name="ignore_warnings_on_exit" value="1"/>
+    
+    <!-- Exclude namespace requirement -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
+        <exclude-pattern>*</exclude-pattern>
+    </rule>
+    
+    <!-- Exclude side effects warning for main entry points and config -->
+    <rule ref="PSR1.Files.SideEffects.FoundWithSymbols">
+        <exclude-pattern>includes/config.php</exclude-pattern>
+        <exclude-pattern>includes/security.php</exclude-pattern>
+        <exclude-pattern>includes/database.php</exclude-pattern>
+        <exclude-pattern>includes/auth.php</exclude-pattern>
+        <exclude-pattern>includes/functions.php</exclude-pattern>
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Line length is a warning in PSR12, but we can relax it -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="150"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+</ruleset>

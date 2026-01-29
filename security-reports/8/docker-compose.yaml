@@ -1,0 +1,33 @@
+services:
+  taskflow-app:
+    image: $FULL_IMAGE
+    container_name: taskflow-app
+    restart: unless-stopped
+
+    networks:
+      - traefik_net
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_net"
+
+      # Router HTTP → redirection vers HTTPS
+      - "traefik.http.routers.taskflow-http.rule=Host(`taskflow-app.rickdan.ddns-ip.net`)"
+      - "traefik.http.routers.taskflow-http.entrypoints=web"
+      - "traefik.http.routers.taskflow-http.middlewares=redirect-to-https"
+
+      # Middleware HTTP→HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+      # Router HTTPS principal
+      - "traefik.http.routers.taskflow.rule=Host(`taskflow-app.rickdan.ddns-ip.net`)"
+      - "traefik.http.routers.taskflow.entrypoints=websecure"
+      - "traefik.http.routers.taskflow.tls.certresolver=myresolver"
+
+      # Service interne
+      - "traefik.http.services.taskflow.loadbalancer.server.port=80"
+
+networks:
+  traefik_net:
+    external: true
